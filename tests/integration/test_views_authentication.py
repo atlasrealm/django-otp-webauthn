@@ -3,7 +3,7 @@ import pytest
 from django.urls import reverse
 from webauthn import base64url_to_bytes
 
-from tests.factories import WebAuthnCredentialFactory
+from tests.factories import UserFactory, WebAuthnCredentialFactory
 
 
 @pytest.mark.parametrize(
@@ -235,6 +235,34 @@ def test_authentication_complete__verify_existing_user(api_client, settings, use
     session = api_client.session
     assert "otp_webauthn_authentication_state" not in session
     assert session["otp_device_id"] == credential.persistent_id
+
+
+@pytest.mark.django_db
+def test_authentication_complete__credential_of_different_user(api_client, user):
+    """A logged-in user must not be able to complete with another user's credential.
+
+    In a second-factor ceremony the credential must belong to the
+    already-authenticated user. allowCredentials scopes this on the client, but
+    that is only a hint, so the server must reject a credential owned by someone
+    else instead of silently succeeding without logging in or verifying.
+    """
+    other_user = UserFactory()
+    api_client.force_authenticate(user)
+
+    payload, credential, session = setup_complete_authentication(
+        api_client=api_client, user=other_user
+    )
+
+    response = api_client.post(
+        reverse("otp_webauthn:credential-authentication-complete"),
+        data=payload,
+        format="json",
+    )
+    assert response.status_code == 404
+    assert response.data["detail"].code == "credential_not_found"
+    session = api_client.session
+    assert "otp_webauthn_authentication_state" not in session
+    assert "otp_device_id" not in session
 
 
 @pytest.mark.django_db

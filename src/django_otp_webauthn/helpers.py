@@ -496,6 +496,12 @@ class WebAuthnHelper:
         except WebAuthnCredential.DoesNotExist:
             raise exceptions.CredentialNotFound() from None
 
+        # In a second-factor ceremony a user is already authenticated, so the
+        # credential must belong to them. The allowCredentials option scopes
+        # this on the client, but that is only a hint - enforce it server-side.
+        if user is not None and device.user_id != user.pk:
+            raise exceptions.CredentialNotFound()
+
         expected_challenge = base64url_to_bytes(state["challenge"])
         expected_origins = self.get_allowed_origins()
         require_user_verification = state["require_user_verification"]

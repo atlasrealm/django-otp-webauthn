@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Nothing yet
+- During a second-factor authentication ceremony (a user is already logged in), the server now verifies the passkey belongs to the authenticated user and rejects it otherwise, instead of accepting any valid credential. Previously such a request returned success without logging in or verifying anyone (django-otp's own ownership checks meant no escalation occurred), which surfaced downstream as a confusing redirect loop. Defense-in-depth: the `allowCredentials` hint is no longer relied upon as the sole scoping mechanism.
 
 ## [0.8.0] - 2026-01-09
 

@@ -237,9 +237,7 @@ class CompleteCredentialAuthenticationView(AuthenticationCeremonyMixin, APIView)
 
         You may override this method to implement custom logic.
         """
-        if self.request.user.is_authenticated:
-            user = device.user
-        else:
+        if not self.request.user.is_authenticated:
             user = auth_authenticate(self.request, webauthn_credential=device)
             auth_login(self.request, user)
 
